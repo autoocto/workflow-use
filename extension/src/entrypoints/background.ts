@@ -30,7 +30,7 @@ export default defineBackground(() => {
   // Store tab information (URL, potentially title)
   const tabInfo: { [tabId: number]: { url?: string; title?: string } } = {};
 
-  let isRecordingEnabled = true; // Default to disabled (OFF)
+  let isRecordingEnabled = false; // Default to disabled (OFF)
   let lastWorkflowHash: string | null = null; // Cache for the last logged workflow hash
 
   const PYTHON_SERVER_ENDPOINT = "http://127.0.0.1:7331/event";

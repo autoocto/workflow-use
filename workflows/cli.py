@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import pathlib
 import subprocess
 import tempfile  # For temporary file handling
 import webbrowser
@@ -18,6 +19,9 @@ from workflow_use.controller.service import WorkflowController
 from workflow_use.mcp.service import get_mcp_server
 from workflow_use.recorder.service import RecordingService  # Added import
 from workflow_use.workflow.service import Workflow
+
+SCRIPT_DIR = pathlib.Path(__file__).resolve().parent
+INIT_STEP_FOLDER = SCRIPT_DIR / 'init_steps'
 
 # Placeholder for recorder functionality
 # from src.recorder.service import RecorderService
@@ -333,6 +337,16 @@ def run_workflow_command(
 
 			browser = Browser(playwright=playwright)
 			controller_instance = WorkflowController()  # Add any necessary config if required
+			init_workflow_path = INIT_STEP_FOLDER / 'init_workflow_steps.json'
+			init_workflow_obj = Workflow.load_from_file(
+				str(init_workflow_path),
+				browser=browser,
+				# llm=llm_instance,
+				controller=controller_instance,
+			)
+
+			await init_workflow_obj.run(close_browser_at_end=False)
+
 			workflow_obj = Workflow.load_from_file(
 				str(workflow_path),
 				browser=browser,

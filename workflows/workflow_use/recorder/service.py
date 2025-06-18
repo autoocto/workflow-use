@@ -16,11 +16,14 @@ from workflow_use.recorder.views import (
 	RecorderEvent,
 	WorkflowDefinitionSchema,  # This is the expected output type
 )
+from workflow_use.controller.service import WorkflowController
+from workflow_use.workflow.service import Workflow
 
 # Path Configuration (should be identical to recorder.py if run from the same context)
 SCRIPT_DIR = pathlib.Path(__file__).resolve().parent
 EXT_DIR = SCRIPT_DIR.parent.parent.parent / 'extension' / '.output' / 'chrome-mv3'
 USER_DATA_DIR = SCRIPT_DIR / 'user_data_dir'
+INIT_STEP_FOLDER = SCRIPT_DIR.parent.parent / 'init_steps'
 
 
 class RecordingService:
@@ -131,9 +134,21 @@ class RecordingService:
 			playwright = await patchright_async_playwright().start()
 			self.browser = Browser(browser_profile=profile, playwright=playwright)
 
-			print('[Service] Starting browser with extensions...')
-			await self.browser.start()
+			controller_instance = WorkflowController()
 
+			init_workflow_path = INIT_STEP_FOLDER / 'init_workflow_steps.json'
+
+			workflow_obj = Workflow.load_from_file(
+				str(init_workflow_path),
+				browser=self.browser,
+				controller=controller_instance,
+			)
+
+			await workflow_obj.run(close_browser_at_end=False)
+
+			# await self.browser.start()
+
+			print('[Service] Starting browser with extensions...')
 			print('[Service] Browser launched. Waiting for close or recording stop...')
 
 			# Wait for browser to be closed manually or recording to stop

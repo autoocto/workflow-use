@@ -13,26 +13,10 @@ async def get_best_element_handle(page, selector, params=None, timeout_ms=500):
 	"""Find element using stability-ranked selector strategies."""
 	original_selector = selector
 
-	# Generate stability-ranked fallback selectors
-	fallbacks = generate_stable_selectors(selector, params)
-
-	# Try all selectors with exponential backoff for timeouts
-	selectors_to_try = [original_selector] + fallbacks
-
-	for try_selector in selectors_to_try:
-		try:
-			logger.info(f'Trying selector: {truncate_selector(try_selector)}')
-			locator = page.locator(try_selector)
-			await locator.wait_for(state='visible', timeout=timeout_ms)
-			logger.info(f'Found element with selector: {truncate_selector(try_selector)}')
-			return locator, try_selector
-		except Exception as e:
-			logger.error(f'Selector failed: {truncate_selector(try_selector)} with error: {e}')
-
-	# Try XPath as last resort
+	# Try XPath first if available
 	if params and getattr(params, 'xpath', None):
-		xpath = params.xpath
 		try:
+			xpath = params.xpath
 			# Generate stable XPath alternatives
 			xpath_alternatives = [xpath] + generate_stable_xpaths(xpath, params)
 
@@ -44,6 +28,19 @@ async def get_best_element_handle(page, selector, params=None, timeout_ms=500):
 				return locator, xpath_selector
 		except Exception as e:
 			logger.error(f'All XPaths failed with error: {e}')
+
+	# Then fallback to CSS selectors
+	fallbacks = generate_stable_selectors(selector, params)
+	selectors_to_try = [original_selector] + fallbacks
+	for try_selector in selectors_to_try:
+		try:
+			logger.info(f'Trying selector: {truncate_selector(try_selector)}')
+			locator = page.locator(try_selector)
+			await locator.wait_for(state='visible', timeout=timeout_ms)
+			logger.info(f'Found element with selector: {truncate_selector(try_selector)}')
+			return locator, try_selector
+		except Exception as e:
+			logger.error(f'Selector failed: {truncate_selector(try_selector)} with error: {e}')
 
 	raise Exception(f'Failed to find element. Original: {original_selector}')
 
